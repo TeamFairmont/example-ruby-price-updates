@@ -1,0 +1,115 @@
+{
+    "engine": {
+        "version": "RTPriceInv v1",
+        "bind": ":8888",
+        "tlsCertFile": "cert.pem",
+        "tlsKeyFile": "key.pem",
+        "tlsEnabled": false,
+        "authMode": "hmac",
+        "prettyOutput": true,
+        "docsEnabled": true,
+        "advanced": {
+            "stubMode": true,
+            "stubDelayMs": 15,
+            "completeResultExpiration": "120s",
+            "completeResultLoopFreq": "5s",
+            "debugFormEnabled": false
+        }
+    },
+
+    "logging": {
+        "level": "info"
+    },
+
+    "security": {
+        "verifyTimeout": 30,
+        "groups": [{
+            "name": "rtservice",
+            "hmackey": "some_hmac_key"
+        }, {
+            "name": "enduser",
+            "hmackey": "another_hmac_key",
+            "requestsPerSecond": 10
+        }],
+        "corsDomains":["http://localhost:3000"],
+        "corsAutoAddLocal": true
+    },
+
+    "cache": {
+        "type": "",
+        "host": "localhost:6379",
+        "pass": ""
+    },
+
+    "workerConfig": {
+    },
+
+    "apiCalls": {
+        "rtservice/update-price-inv": {
+            "resultTimeoutMs": 200,
+            "resultZombieMs": 1000,
+            "cache": {
+                "enabled": false
+            },
+            "requiredParams": {
+                "sku": "string"
+            },
+            "commands": [{
+                "name": "fluctuatePrice",
+                "resultTimeoutMs": 100,
+                "configParams": {
+                }
+            }]
+        },
+        "products/get-updated": {
+            "resultTimeoutMs": 100,
+            "cache": {
+                "enabled": true,
+                "expirationTimeSec": 2
+            },
+            "requiredParams": {
+                "since": "int64"
+            },
+            "commands": [{
+                "name": "getUpdated",
+                "resultTimeoutMs": 200,
+                "returnAfter": false,
+                "configParams": {}
+            }, {
+                "name": "formatContent",
+                "resultTimeoutMs": 200,
+                "returnAfter": false,
+                "configParams": {
+                }
+            }]
+        }
+    },
+
+    "commandMeta": {
+        "formatContent": {
+	    "stubReturn": {
+                "products":[{"sku": "MEDSHIRT","price":123.34,"inventory":19}]
+            },
+	    "noStub": false
+        },
+	"getUpdated": {
+            "requiredParams": {
+                "since": "int64"
+            },
+            "stubReturn": {
+                "products":[{"sku": "MedShirt","price":123.34,"inventory":19}]
+            },
+            "noStub": false
+        },
+	"fluctuatePrice": {
+            "requiredParams": {
+                "sku": "string"
+            },
+            "stubReturn": {
+                "success": true            
+            },
+            "noStub": true
+        }
+
+    }
+}
