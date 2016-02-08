@@ -36,6 +36,7 @@
 
         h6 { font-size: 14px; display:block; margin-top:3px; margin-bottom:3px; font-weight:bold; }
         h7 { font-size: 12px;  display:block;  font-weight:bold;}
+        h7.diff { font-size: 10px; font-style: italic; font-weight: normal; color: #ccc}
 
         .clear { clear:both;}
     </style>
@@ -79,6 +80,7 @@
             <div class="clear"></div>
             <h6>PRODUCT NAME</h6>
             <h7 class="price">PRICE</h7>
+            <h7 class="diff">-2.12</h7>
             <h7 class="inv">INVENTORY</h7>
         </div>
     </div>
@@ -109,7 +111,8 @@
     <script src="static/js/bootstrap.min.js"></script>
 
     <script>
-        var getProductDelay = 250, updateStatsDelay = 1000, changeDelay = 50;
+
+        var getProductDelay = 333, updateStatsDelay = 1000, changeDelay = 50;
 
         function highlight(sku, red) {
             var s = (red) ? "#C00" : "#0C0";
@@ -124,20 +127,22 @@
                 o.addClass(data.sku);
                 o.attr("data-sku", data.sku);
                 o.click(function(e) {
-                    $("#prodModal .product h3").html($("#product-container .product."+$(e.target).attr("data-sku")+" h6").text());
-                    $("#prodModal .product h4.price").html($("#product-container .product."+$(e.target).attr("data-sku")+" h7.price").text());
-                    $("#prodModal .product h4.inv").html($("#product-container .product."+$(e.target).attr("data-sku")+" h7.inv").text());
+                    $("#prodModal .product h3").text($("#product-container .product."+data.sku+" h6").text());
+                    $("#prodModal .product h4.price").text($("#product-container .product."+data.sku+" h7.price").text());
+                    $("#prodModal .product h4.inv").text($("#product-container .product."+data.sku+" h7.inv").text());
                     $("#prodModal").modal();
                 });
                 $("#product-container").prepend(o);
             }
-            var oldprice = $("#product-container .product."+data.sku+" h7.price").text();
+            var diff=data.price - data.last_price
 
-            $("#product-container .product."+data.sku+" h6").html(data.sku);
-            $("#product-container .product."+data.sku+" h7.price").html("$"+data.price.toFixed(2));
-            $("#product-container .product."+data.sku+" h7.inv").html("Stock: "+data.inventory);
+            highlight(data.sku, (diff<0.0));
 
-            highlight(data.sku, (parseFloat(oldprice.substring(1)) < data.price) );
+            $("#product-container .product."+data.sku+" h6").text(data.sku);
+            $("#product-container .product."+data.sku+" h7.price").text("$"+data.price.toFixed(2));
+            $("#product-container .product."+data.sku+" h7.diff").text(diff.toFixed(2));
+            $("#product-container .product."+data.sku+" h7.inv").text("Stock: "+data.inventory);
+
         }
 
         function getChangedProducts(since) {
@@ -153,7 +158,6 @@
                       stats.updates++;
                       var e = new Date();
                       stats.response_time = e.getTime()-s.getTime();
-                      //TODO loop through and update products
                       for (var i=0; i<data.products.length; i++) {
                           addProductInfo(data.products[i]);
                       }
@@ -164,7 +168,6 @@
                   setTimeout(function(){ getChangedProducts(stats.last_load.getTime()); }, getProductDelay);
               },
               error: function(err) {
-
                   console.log(err);
               }
             });

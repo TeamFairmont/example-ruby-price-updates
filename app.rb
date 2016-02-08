@@ -6,6 +6,8 @@ require 'net/http'
 require 'uri'
 
 class App
+    @@timeouts = 0
+
     def call(env)
         request = Rack::Request.new env
         response = Rack::Response.new
@@ -43,13 +45,12 @@ class App
         engineres = http.request(request)
 
         #just return the results directly
-        #TODO check for errors, timeouts, etc
         v=JSON.parse(engineres.body)
         if v['complete']
             response.write JSON.generate(v['return_value'])
         else
             #TODO create a fetch loop for get the complete result
-            response.write '{"products":[{"sku":"QWEQWE", "price":0, "inventory":0}]}'
+            response.write('{"products":[{"sku":"TIMEOUT", "price":0, "inventory":0}]}')
         end
     end
 end

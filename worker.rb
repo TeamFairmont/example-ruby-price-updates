@@ -15,6 +15,7 @@ x  = ch.default_exchange
 
 #setup db
 db = SQLite3::Database.new( "./demo.db" )
+db.execute("PRAGMA default_synchronous=OFF")
 prng = Random.new
 
 #loop on workers
@@ -46,7 +47,9 @@ while true do
         if pl["initial_input"]["since"].to_i == 0
             rows = db.execute( "SELECT * FROM productlog GROUP by sku order by stamp desc" )
         else
-            rows = db.execute( "SELECT * FROM productlog WHERE stamp >= ?", pl["initial_input"]["since"].to_i/1000 )
+            rows = db.execute( "SELECT p.*,
+	(SELECT lp.price FROM productlog lp where lp.stamp<p.stamp AND lp.sku=p.sku ORDER BY lp.stamp DESC LIMIT 0,1) as last_price
+    FROM productlog p WHERE p.stamp >= ?", pl["initial_input"]["since"].to_i/1000 )
         end
 
         data=[]
@@ -54,15 +57,16 @@ while true do
             data << {
                 :sku => row[0],
                 :price => row[1],
-                :inventory => row[2]
+                :inventory => row[2],
+                :last_price => row[4]
             }
         end
         pl['return_value']['products']=data
 
-        #truncate price log to last 200 if we have more than 5000 entries
+        #truncate price log to last 500 if we have more than 5000 entries
         count = db.get_first_value("select count(*) from productlog")
         if count > 5000
-            db.execute("delete from productlog where stamp not in (select stamp from productlog order by stamp desc limit 200)")
+            db.execute("delete from productlog where stamp not in (select stamp from productlog order by stamp desc limit 500)")
         end
 
         #publish response back to mq
@@ -91,7 +95,7 @@ while true do
         x.publish(out, :routing_key=>metadata.reply_to, :correlation_id=>metadata.correlation_id)
     end
 
-    sleep 0.01
+    sleep 0.001
 end
 
 conn.close

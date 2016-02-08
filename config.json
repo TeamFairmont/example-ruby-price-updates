@@ -9,7 +9,7 @@
         "prettyOutput": true,
         "docsEnabled": true,
         "advanced": {
-            "stubMode": true,
+            "stubMode": false,
             "stubDelayMs": 15,
             "completeResultExpiration": "120s",
             "completeResultLoopFreq": "5s",
