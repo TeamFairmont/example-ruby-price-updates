@@ -29,10 +29,9 @@
             margin-left: 0px;
             padding: 5px;
             border-radius: 5px 5px;
-            /*box-shadow: 2px 2px 0px #000;*/
-            transition: background 4s linear;
-            -webkit-transition: background 4s linear;
-            -moz-transition: background 4s linear;
+            transition: background 1s linear;
+            -webkit-transition: background 1s linear;
+            -moz-transition: background 1s linear;
         }
 
         h6 { font-size: 14px; display:block; margin-top:3px; margin-bottom:3px; font-weight:bold; }
@@ -62,6 +61,9 @@
                 <h1>Products Live View</h1>
                 <div id="stats">
                     <button class="btn btn-sm btn-success" id="start">Start Live Updates</button>
+                </div>
+                <div id="fluct">
+                    <button class="btn btn-sm btn-success" id="fluct">Start Fluctations</button>
                 </div>
             </div>
         </div>
@@ -107,9 +109,12 @@
     <script src="static/js/bootstrap.min.js"></script>
 
     <script>
-        function moveToTop(sku) {
-            $("#product-container .product."+sku).hide().fadeIn(250);
-            $("#product-container .product."+sku).insertBefore($("#product-container .product")[0]);
+        var getProductDelay = 250, updateStatsDelay = 1000, changeDelay = 50;
+
+        function highlight(sku, red) {
+            var s = (red) ? "#C00" : "#0C0";
+            $("#product-container .product."+sku).css("background", s);
+            setTimeout(function() { $("#product-container .product."+sku).css("background", "#777"); }, 1000)
         }
 
         function addProductInfo(data) {
@@ -126,11 +131,13 @@
                 });
                 $("#product-container").prepend(o);
             }
-            $("#product-container .product."+data.sku+" h6").html(data.sku);
-            $("#product-container .product."+data.sku+" h7.price").html("$"+data.price);
-            $("#product-container .product."+data.sku+" h7.inv").html(data.inventory);
+            var oldprice = $("#product-container .product."+data.sku+" h7.price").text();
 
-            moveToTop(data.sku);
+            $("#product-container .product."+data.sku+" h6").html(data.sku);
+            $("#product-container .product."+data.sku+" h7.price").html("$"+data.price.toFixed(2));
+            $("#product-container .product."+data.sku+" h7.inv").html("Stock: "+data.inventory);
+
+            highlight(data.sku, (parseFloat(oldprice.substring(1)) < data.price) );
         }
 
         function getChangedProducts(since) {
@@ -138,7 +145,7 @@
             var s=new Date();
             $.ajax({
               dataType: "json",
-              url: "/get-updates?last="+since,
+              url: "/get-updates?since="+since,
               success: function(data) {
                   //check if 'success' is true, set last load time, then loop through and update page
                   if (typeof data.products!="undefined") {
@@ -151,10 +158,10 @@
                           addProductInfo(data.products[i]);
                       }
                   } else {
-                      console.log(data);
+                      //console.log(data);
                   }
 
-                  setTimeout(function(){ getChangedProducts(stats.last_load.getTime()); }, 200);
+                  setTimeout(function(){ getChangedProducts(stats.last_load.getTime()); }, getProductDelay);
               },
               error: function(err) {
 
@@ -170,13 +177,17 @@
                 s+= k+"="+stats[k]+" / ";
             }
             $("#stats").text(s);
-            setTimeout(function(){ updateStats(); }, 1000);
+            setTimeout(function(){ updateStats(); }, updateStatsDelay);
         }
 
         var stats = {"updates":0, "response_time": 0, "last_load": new Date()};
         $("#start").click(function() {
             getChangedProducts(0);
             updateStats();
+        });
+
+        $("#fluct").click(function() {
+            $('#fluct').hide();
             prodChanger();
         });
 
@@ -224,14 +235,14 @@
                 xhr.setRequestHeader("Authorization", make_base_auth(username, password));
               },
               success: function(data) {
-                console.log("success");
-                console.log(data);
+                //console.log("success");
+                //console.log(data);
 
-                setTimeout(function(){ prodChanger(); }, 100);
+                setTimeout(function(){ prodChanger(); }, changeDelay);
               },
-              error: function(data) {
+              error: function(err) {
                 alert("ENGINE ERROR, STOPPING UPDATES ");
-                console.log(data);
+                console.log(err);
               }
             });
         }
