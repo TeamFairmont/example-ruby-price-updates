@@ -46,7 +46,7 @@
 
     "apiCalls": {
         "rtservice/update-price-inv": {
-            "resultTimeoutMs": 200,
+            "resultTimeoutMs": 100,
             "resultZombieMs": 1000,
             "cache": {
                 "enabled": false
@@ -62,7 +62,8 @@
             }]
         },
         "products/get-updated": {
-            "resultTimeoutMs": 100,
+            "resultZombieMs": 1000,
+            "resultTimeoutMs": 200,
             "cache": {
                 "enabled": true,
                 "expirationTimeSec": 2
