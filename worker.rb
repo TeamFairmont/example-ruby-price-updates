@@ -8,6 +8,7 @@ conn = Bunny.new
 conn.start
 
 ch = conn.create_channel
+ch.prefetch(0,true)
 qgu  = ch.queue("getUpdated", :durable=>true, :autodelete=>false)
 qfc  = ch.queue("formatContent", :durable=>true, :autodelete=>false)
 qfp  = ch.queue("fluctuatePrice", :durable=>true, :autodelete=>false)
@@ -75,24 +76,31 @@ while true do
     end
 
     #FLUCTUATE PRICE AND INVENTORY
-    qfp.subscribe do |delivery_info, metadata, payload|
-        puts "fluctuatePrice"
-        pl = JSON.parse(payload)
+    count=0
+    db.transaction do |db|
+        qfp.subscribe do |delivery_info, metadata, payload|
+            puts "fluctuatePrice"
+            pl = JSON.parse(payload)
 
-        #change prices and inv around in db
-        inv = prng.rand(100)-25
-        price = prng.rand()*200
-        sku = "P"+Base64.encode64(prng.rand(101..200).to_s).downcase.reverse.sub("\n","")
-        db.execute("INSERT INTO productlog VALUES (?,?,?,strftime('%s','now'))",
-            sku, price, inv
-        )
+            #change prices and inv around in db
+            inv = prng.rand(100)-25
+            price = prng.rand()*200
+            sku = "P"+Base64.encode64(prng.rand(101..200).to_s).downcase.reverse.sub("\n","")
+            db.execute("INSERT INTO productlog VALUES (?,?,?,strftime('%s','now'))",
+                sku, price, inv
+            )
+            count+=1
 
-        #set return val
-        pl['return_value']['success']=true
+            #set return val
+            pl['return_value']['success']=true
 
-        #publish response back to mq
-        out=JSON.generate(pl)
-        x.publish(out, :routing_key=>metadata.reply_to, :correlation_id=>metadata.correlation_id)
+            #publish response back to mq
+            out=JSON.generate(pl)
+            x.publish(out, :routing_key=>metadata.reply_to, :correlation_id=>metadata.correlation_id)
+        end
+    end
+    if count>0
+        puts count
     end
 
     sleep 0.001
